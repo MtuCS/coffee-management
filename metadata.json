@@ -1,0 +1,5 @@
+{
+  "name": "Family Coffee POS",
+  "description": "A modern, easy-to-use Point of Sale system designed for family coffee shops. Features table management, order entry, split billing, and admin reporting.",
+  "requestFramePermissions": []
+}
