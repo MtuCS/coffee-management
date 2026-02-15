@@ -9,9 +9,12 @@ interface OrderPanelProps {
   onUpdateOrder: (items: OrderItem[]) => void;
   onBack: () => void;
   onPayment: () => void;
+  onSaveAndBack: () => void;
+  onCancelNewOrder: () => void;
   onMoveTable?: () => void;
   categories: Category[];
   products: Product[];
+  isNewOrder: boolean;
 }
 
 export const OrderPanel: React.FC<OrderPanelProps> = ({
@@ -20,13 +23,17 @@ export const OrderPanel: React.FC<OrderPanelProps> = ({
   onUpdateOrder,
   onBack,
   onPayment,
+  onSaveAndBack,
+  onCancelNewOrder,
   onMoveTable,
   categories,
   products,
+  isNewOrder,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>(categories[0]?.id || '');
   const [searchTerm, setSearchTerm] = useState('');
   const [localItems, setLocalItems] = useState<OrderItem[]>(currentOrder?.items || []);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
 
   useEffect(() => {
     if (currentOrder) {
@@ -69,7 +76,13 @@ export const OrderPanel: React.FC<OrderPanelProps> = ({
         {/* Header */}
         <header className="bg-white p-4 border-b border-gray-200 flex items-center justify-between shadow-sm z-10">
           <div className="flex items-center gap-4">
-            <button onClick={onBack} className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+            <button onClick={() => {
+              if (isNewOrder && localItems.length === 0) {
+                setShowLeaveConfirm(true);
+              } else {
+                onBack();
+              }
+            }} className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
               <span className="material-icons">arrow_back</span>
             </button>
             <h1 className="text-xl font-bold text-gray-800">
@@ -224,7 +237,7 @@ export const OrderPanel: React.FC<OrderPanelProps> = ({
           </div>
 
           <div className="grid grid-cols-2 gap-3 mb-3">
-            {table && (
+            {!isNewOrder && table && (
               <button
                 onClick={onMoveTable}
                 className="flex items-center justify-center gap-2 py-3 bg-white border border-gray-200 rounded-xl font-bold text-xs hover:bg-gray-100 transition-colors"
@@ -236,16 +249,62 @@ export const OrderPanel: React.FC<OrderPanelProps> = ({
             <div></div>
           </div>
 
-          <button
-            onClick={onPayment}
-            disabled={localItems.length === 0}
-            className="w-full py-4 bg-primary text-white rounded-xl font-black text-lg shadow-lg shadow-primary/30 hover:shadow-primary/40 hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            PROCEED TO PAYMENT
-            <span className="material-icons">arrow_forward</span>
-          </button>
+          {isNewOrder ? (
+            <button
+              onClick={() => {
+                onUpdateOrder(localItems);
+                onSaveAndBack();
+              }}
+              disabled={localItems.length === 0}
+              className="w-full py-4 bg-blue-500 text-white rounded-xl font-black text-lg shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span className="material-icons">save</span>
+              LƯU TẠM
+            </button>
+          ) : (
+            <button
+              onClick={onPayment}
+              disabled={localItems.length === 0}
+              className="w-full py-4 bg-primary text-white rounded-xl font-black text-lg shadow-lg shadow-primary/30 hover:shadow-primary/40 hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              PROCEED TO PAYMENT
+              <span className="material-icons">arrow_forward</span>
+            </button>
+          )}
         </div>
       </aside>
+
+      {/* Leave Confirmation Modal */}
+      {showLeaveConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-8 max-w-sm w-full mx-4 shadow-2xl">
+            <div className="flex items-center justify-center w-14 h-14 bg-yellow-100 rounded-full mx-auto mb-4">
+              <span className="material-icons text-yellow-500 text-3xl">warning</span>
+            </div>
+            <h3 className="text-lg font-bold text-gray-800 text-center mb-2">Rời khỏi bàn?</h3>
+            <p className="text-sm text-gray-500 text-center mb-6">
+              Bạn chưa chọn món nào. Order sẽ bị hủy và bàn sẽ trở về trạng thái trống.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowLeaveConfirm(false)}
+                className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold text-sm hover:bg-gray-200 transition-colors"
+              >
+                Tiếp tục order
+              </button>
+              <button
+                onClick={() => {
+                  setShowLeaveConfirm(false);
+                  onCancelNewOrder();
+                }}
+                className="flex-1 py-3 bg-red-500 text-white rounded-xl font-bold text-sm hover:bg-red-600 transition-colors"
+              >
+                Rời đi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

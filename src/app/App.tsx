@@ -42,11 +42,13 @@ const App: React.FC = () => {
     { id: 'a3', name: 'Mezzanine' },
   ]);
   const [orders, setOrders] = useState<Record<string, Order>>({});
+  const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [currentShift, setCurrentShift] = useState<Shift | null>(null);
 
   // Active context
   const [activeTableId, setActiveTableId] = useState<string | null>(null);
+  const [isNewOrder, setIsNewOrder] = useState(false);
 
   // ─── Firebase Realtime Subscriptions ───
   useEffect(() => {
@@ -62,6 +64,7 @@ const App: React.FC = () => {
       menuRepo.subscribeCategories((data) => setCategories(data)),
       menuRepo.subscribeProducts((data) => setProducts(data)),
       ordersRepo.subscribeActiveOrders((data) => setOrders(data)),
+      ordersRepo.subscribeAllOrders((data) => setAllOrders(data)),
       shiftsRepo.subscribeCurrentShift((data) => setCurrentShift(data)),
       shiftsRepo.subscribeShifts((data) => setShifts(data)),
       usersRepo.subscribeUsers((data) => setUsers(data)),
@@ -102,6 +105,9 @@ const App: React.FC = () => {
         status: TableStatus.OCCUPIED,
         currentOrderId: newOrderId,
       });
+      setIsNewOrder(true);
+    } else {
+      setIsNewOrder(false);
     }
 
     setView('POS');
@@ -226,7 +232,7 @@ const App: React.FC = () => {
     return (
       <AdminDashboard
         shifts={shifts}
-        orders={Object.values(orders)}
+        orders={allOrders}
         onBack={() => setView('TABLES')}
         categories={categories}
         onSaveCategory={handleSaveCategory}
@@ -266,11 +272,25 @@ const App: React.FC = () => {
         table={activeTable}
         currentOrder={activeOrder}
         onUpdateOrder={handleUpdateOrder}
-        onBack={() => setView('TABLES')}
+        onBack={() => { setView('TABLES'); setIsNewOrder(false); }}
         onPayment={() => setView('PAYMENT')}
+        onSaveAndBack={() => { setView('TABLES'); setIsNewOrder(false); }}
+        onCancelNewOrder={async () => {
+          if (activeTable?.currentOrderId) {
+            await ordersRepo.deleteOrder(activeTable.currentOrderId);
+            await tablesRepo.updateTable(activeTable.id, {
+              status: TableStatus.AVAILABLE,
+              currentOrderId: null,
+            });
+          }
+          setActiveTableId(null);
+          setIsNewOrder(false);
+          setView('TABLES');
+        }}
         onMoveTable={handleMoveTable}
         categories={categories}
         products={products}
+        isNewOrder={isNewOrder}
       />
     );
   }
@@ -284,6 +304,7 @@ const App: React.FC = () => {
         orders={orders}
         onTableClick={handleTableClick}
         currentShiftName={currentShiftName}
+        shiftRevenue={currentShift?.totalRevenue ?? 0}
       />
 
       {/* User info & Logout */}

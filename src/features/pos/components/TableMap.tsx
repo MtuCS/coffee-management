@@ -7,6 +7,7 @@ interface TableMapProps {
   orders: Record<string, Order>;
   onTableClick: (tableId: string) => void;
   currentShiftName: string | null;
+  shiftRevenue: number;
 }
 
 export const TableMap: React.FC<TableMapProps> = ({
@@ -15,6 +16,7 @@ export const TableMap: React.FC<TableMapProps> = ({
   orders,
   onTableClick,
   currentShiftName,
+  shiftRevenue,
 }) => {
   const [filterArea, setFilterArea] = useState<string>('All');
   const [searchTerm, setSearchTerm] = useState('');
@@ -46,11 +48,6 @@ export const TableMap: React.FC<TableMapProps> = ({
   };
 
   const activeTables = tables.filter((t) => t.status !== TableStatus.AVAILABLE).length;
-  const ordersList = Object.values(orders) as Order[];
-  const totalRevenue = ordersList.reduce(
-    (acc, order) => acc + (order.paidAmount || 0),
-    0
-  );
 
   const isActive = !!currentShiftName;
 
@@ -89,7 +86,7 @@ export const TableMap: React.FC<TableMapProps> = ({
             <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Shift Analytics</h2>
             <div className="bg-bg-light p-4 rounded-xl border border-gray-100">
               <p className="text-gray-500 text-sm mb-1">Total Revenue</p>
-              <h3 className="text-2xl font-bold text-primary">${totalRevenue.toFixed(2)}</h3>
+              <h3 className="text-2xl font-bold text-primary">${shiftRevenue.toFixed(2)}</h3>
             </div>
             <div className="bg-bg-light p-4 rounded-xl border border-gray-100">
               <p className="text-gray-500 text-sm mb-1">Active Tables</p>

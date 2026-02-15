@@ -3,6 +3,7 @@ import {
   doc,
   addDoc,
   updateDoc,
+  deleteDoc,
   onSnapshot,
   query,
   where,
@@ -74,6 +75,10 @@ export const subscribeAllOrders = (
 export const createOrder = async (data: Omit<Order, 'id'>): Promise<string> => {
   const docRef = await addDoc(ordersRef, toFirestoreOrder(data));
   return docRef.id;
+};
+
+export const deleteOrder = async (orderId: string): Promise<void> => {
+  await deleteDoc(doc(db, 'orders', orderId));
 };
 
 export const updateOrderItems = async (
