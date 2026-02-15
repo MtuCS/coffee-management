@@ -53,10 +53,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // Build chart data from shifts
   const chartData = shifts
-    .filter((s) => !s.isOpen)
-    .slice(0, 7)
+    .slice(0, 10)
     .map((s) => ({
-      day: s.startTime.toLocaleDateString('en-US', { weekday: 'short' }),
+      day: `${s.date} ${s.shiftName}`,
       revenue: s.totalRevenue,
     }));
 

@@ -6,9 +6,7 @@ interface TableMapProps {
   areas: string[];
   orders: Record<string, Order>;
   onTableClick: (tableId: string) => void;
-  onCloseShift: () => void;
-  userRole: 'ADMIN' | 'STAFF';
-  isShiftOpen: boolean;
+  currentShiftName: string | null;
 }
 
 export const TableMap: React.FC<TableMapProps> = ({
@@ -16,9 +14,7 @@ export const TableMap: React.FC<TableMapProps> = ({
   areas,
   orders,
   onTableClick,
-  onCloseShift,
-  userRole,
-  isShiftOpen,
+  currentShiftName,
 }) => {
   const [filterArea, setFilterArea] = useState<string>('All');
   const [searchTerm, setSearchTerm] = useState('');
@@ -52,9 +48,11 @@ export const TableMap: React.FC<TableMapProps> = ({
   const activeTables = tables.filter((t) => t.status !== TableStatus.AVAILABLE).length;
   const ordersList = Object.values(orders) as Order[];
   const totalRevenue = ordersList.reduce(
-    (acc, order) => acc + (order.status === 'CLOSED' ? order.totalAmount : 0),
+    (acc, order) => acc + (order.paidAmount || 0),
     0
   );
+
+  const isActive = !!currentShiftName;
 
   return (
     <div className="flex flex-col h-full bg-bg-light">
@@ -66,28 +64,20 @@ export const TableMap: React.FC<TableMapProps> = ({
           </div>
           <div>
             <h1 className="text-xl font-bold text-gray-800">Table Management</h1>
-            <p className="text-xs text-gray-500">Main Branch • {new Date().toLocaleDateString()}</p>
+            <p className="text-xs text-gray-500">Main Branch &bull; {new Date().toLocaleDateString()}</p>
           </div>
         </div>
         <div className="flex items-center gap-6">
-          {isShiftOpen ? (
-            <div className="flex items-center gap-2 text-green-600 bg-green-50 px-3 py-1 rounded-full text-xs font-bold border border-green-200">
+          {isActive ? (
+            <div className="flex items-center gap-2 text-green-600 bg-green-50 px-4 py-2 rounded-full text-sm font-bold border border-green-200">
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-              SHIFT OPEN
+              {currentShiftName}
             </div>
           ) : (
-            <div className="flex items-center gap-2 text-red-600 bg-red-50 px-3 py-1 rounded-full text-xs font-bold border border-red-200">
-              SHIFT CLOSED
+            <div className="flex items-center gap-2 text-gray-500 bg-gray-100 px-4 py-2 rounded-full text-sm font-bold border border-gray-200">
+              <span className="material-icons text-sm">nightlight</span>
+              Ngoài giờ phục vụ
             </div>
-          )}
-          {userRole === 'ADMIN' && isShiftOpen && (
-            <button
-              onClick={onCloseShift}
-              className="bg-secondary text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-opacity-90 transition-colors flex items-center gap-2"
-            >
-              <span className="material-icons text-sm">lock</span>
-              CLOSE SHIFT
-            </button>
           )}
         </div>
       </header>
@@ -173,11 +163,10 @@ export const TableMap: React.FC<TableMapProps> = ({
                 return (
                   <div
                     key={table.id}
-                    onClick={() => isShiftOpen && onTableClick(table.id)}
+                    onClick={() => onTableClick(table.id)}
                     className={`
                       bg-white rounded-xl border-t-4 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer flex flex-col min-h-[160px] p-4 relative group
                       ${getStatusColor(table.status)}
-                      ${!isShiftOpen ? 'opacity-50 pointer-events-none grayscale' : ''}
                     `}
                   >
                     <div className="flex justify-between items-start mb-6">

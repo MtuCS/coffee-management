@@ -57,13 +57,16 @@ export interface Area {
   name: string;
 }
 
+export type ShiftType = 'MORNING' | 'AFTERNOON' | 'EVENING';
+
 export interface Shift {
   id: string;
-  opener: string;
+  shiftType: ShiftType;
+  shiftName: string;
+  date: string;       // 'YYYY-MM-DD'
   startTime: Date;
-  endTime: Date | null;
+  endTime: Date;
   totalRevenue: number;
-  isOpen: boolean;
 }
 
 export interface Category {

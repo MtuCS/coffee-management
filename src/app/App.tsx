@@ -53,6 +53,9 @@ const App: React.FC = () => {
     // Chỉ subscribe khi user đã đăng nhập
     if (!currentUser) return;
 
+    // Auto-resolve ca hiện tại (tạo nếu chưa có)
+    shiftsRepo.getOrCreateCurrentShift().then((shift) => setCurrentShift(shift));
+
     const unsubscribers = [
       tablesRepo.subscribeTables((data) => setTables(data)),
       tablesRepo.subscribeAreas((data) => setAreas(data)),
@@ -82,15 +85,8 @@ const App: React.FC = () => {
     }
   };
 
-  // ─── Shift Actions ───
-  const handleToggleShift = async () => {
-    if (!currentUser) return;
-    if (currentShift) {
-      await shiftsRepo.closeShift(currentShift.id);
-    } else {
-      await shiftsRepo.openShift(currentUser.name);
-    }
-  };
+  // ─── Derived: shift name ───
+  const currentShiftName = currentShift?.shiftName || null;
 
   // ─── Table Click ───
   const handleTableClick = async (tableId: string) => {
@@ -287,9 +283,7 @@ const App: React.FC = () => {
         areas={areaNames}
         orders={orders}
         onTableClick={handleTableClick}
-        onCloseShift={handleToggleShift}
-        userRole={currentUser.role}
-        isShiftOpen={!!currentShift}
+        currentShiftName={currentShiftName}
       />
 
       {/* User info & Logout */}

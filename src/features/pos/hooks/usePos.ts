@@ -31,8 +31,7 @@ import {
 import {
   subscribeCurrentShift,
   subscribeShifts,
-  openShift,
-  closeShift,
+  getOrCreateCurrentShift,
 } from '@/src/services/firebase/firestore/shifts.repo';
 import {
   createNewOrder,
@@ -54,6 +53,9 @@ export const usePos = () => {
 
   // ─── Realtime Subscriptions ───
   useEffect(() => {
+    // Auto-resolve ca hiện tại
+    getOrCreateCurrentShift().then((shift) => setCurrentShift(shift));
+
     const unsubscribers = [
       subscribeTables((data) => { setTables(data); setLoading(false); }),
       subscribeAreas((data) => setAreas(data)),
@@ -71,14 +73,8 @@ export const usePos = () => {
   const activeOrder = activeTable?.currentOrderId ? orders[activeTable.currentOrderId] || null : null;
   const areaNames = areas.map((a) => a.name);
 
-  // ─── Shift Actions ───
-  const handleToggleShift = useCallback(async (openerName: string) => {
-    if (currentShift) {
-      await closeShift(currentShift.id);
-    } else {
-      await openShift(openerName);
-    }
-  }, [currentShift]);
+  // ─── Shift (auto-resolved, no manual toggle) ───
+  const currentShiftName = currentShift?.shiftName || null;
 
   // ─── Table Click ───
   const handleTableClick = useCallback(async (tableId: string) => {
@@ -145,7 +141,7 @@ export const usePos = () => {
     loading,
     // Actions
     setActiveTableId,
-    handleToggleShift,
+    currentShiftName,
     handleTableClick,
     handleUpdateOrder,
     handleProcessPayment,
