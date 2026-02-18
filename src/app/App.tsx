@@ -308,14 +308,14 @@ const App: React.FC = () => {
       />
 
       {/* User info & Logout */}
-      <div className="fixed bottom-4 left-4 z-50 flex gap-2 items-center">
-        <div className="bg-white px-3 py-2 rounded-full shadow-lg border border-gray-200 flex items-center gap-2">
+      <div className="fixed bottom-3 left-3 md:bottom-4 md:left-4 z-50 flex gap-1.5 md:gap-2 items-center">
+        <div className="bg-white px-2 md:px-3 py-1.5 md:py-2 rounded-full shadow-lg border border-gray-200 flex items-center gap-1.5 md:gap-2">
           <img
             src={currentUser.avatar || `https://ui-avatars.com/api/?name=${currentUser.name}`}
             alt=""
-            className="w-6 h-6 rounded-full"
+            className="w-5 h-5 md:w-6 md:h-6 rounded-full"
           />
-          <span className="text-xs font-bold text-gray-700">{currentUser.name}</span>
+          <span className="hidden md:inline text-xs font-bold text-gray-700">{currentUser.name}</span>
           <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${
             currentUser.role === 'ADMIN' ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-500'
           }`}>
@@ -324,7 +324,7 @@ const App: React.FC = () => {
         </div>
         <button
           onClick={signOut}
-          className="bg-white px-3 py-2 rounded-full shadow-lg border border-gray-200 text-gray-500 hover:text-red-500 hover:border-red-200 transition-colors"
+          className="bg-white px-2 md:px-3 py-1.5 md:py-2 rounded-full shadow-lg border border-gray-200 text-gray-500 hover:text-red-500 hover:border-red-200 transition-colors"
           title="Logout"
         >
           <span className="material-icons text-sm">logout</span>
@@ -335,7 +335,7 @@ const App: React.FC = () => {
       {currentUser.role === 'ADMIN' && (
         <button
           onClick={() => setView('ADMIN')}
-          className="fixed bottom-6 right-6 w-14 h-14 bg-secondary text-white rounded-full shadow-xl flex items-center justify-center hover:scale-105 transition-transform z-50 border-2 border-primary"
+          className="fixed bottom-3 right-3 md:bottom-6 md:right-6 w-12 h-12 md:w-14 md:h-14 bg-secondary text-white rounded-full shadow-xl flex items-center justify-center hover:scale-105 transition-transform z-50 border-2 border-primary"
           title="Admin Dashboard"
         >
           <span className="material-icons">settings</span>

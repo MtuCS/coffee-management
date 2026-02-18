@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Shift, Order, Category, Product, Table, User, Area, TableStatus } from '@/src/shared/types';
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { formatMoney } from '@/src/shared/utils/money';
 
 interface AdminDashboardProps {
   shifts: Shift[];
@@ -97,10 +98,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setIsUserModalOpen(true);
   };
 
+  const tabItems = [
+    { key: 'DASHBOARD' as Tab, icon: 'analytics', label: 'Dashboard' },
+    { key: 'MENU' as Tab, icon: 'restaurant_menu', label: 'Menu' },
+    { key: 'TABLES' as Tab, icon: 'table_restaurant', label: 'Tables' },
+    { key: 'STAFF' as Tab, icon: 'people', label: 'Staff' },
+  ];
+
+  const activeTabLabel = tabItems.find((t) => t.key === activeTab)?.label || '';
+
   return (
     <div className="flex h-screen bg-bg-light font-sans overflow-hidden">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col z-10 hidden md:flex shadow-sm">
+      {/* Desktop Sidebar */}
+      <aside className="w-64 bg-white border-r border-gray-200 flex-col z-10 hidden md:flex shadow-sm">
         <div className="p-6 border-b border-gray-100">
           <div className="flex items-center gap-2 text-secondary font-bold text-lg">
             <div className="p-2 bg-primary rounded text-white">
@@ -111,12 +121,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <p className="text-xs text-gray-400 mt-1 pl-10">Admin Console</p>
         </div>
         <nav className="p-4 space-y-2 flex-1">
-          {([
-            { key: 'DASHBOARD' as Tab, icon: 'analytics', label: 'Dashboard' },
-            { key: 'MENU' as Tab, icon: 'restaurant_menu', label: 'Menu Mgmt' },
-            { key: 'TABLES' as Tab, icon: 'table_restaurant', label: 'Tables & Areas' },
-            { key: 'STAFF' as Tab, icon: 'people', label: 'Staff' },
-          ]).map((item) => (
+          {tabItems.map((item) => (
             <button
               key={item.key}
               onClick={() => setActiveTab(item.key)}
@@ -141,7 +146,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto p-8 relative">
+      <main className="flex-1 overflow-y-auto relative flex flex-col min-h-0">
+        {/* Mobile Header */}
+        <div className="md:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-10">
+          <div className="flex items-center gap-3">
+            <div className="p-1.5 bg-primary rounded text-white">
+              <span className="material-icons text-sm">coffee</span>
+            </div>
+            <h1 className="text-base font-bold text-gray-800">{activeTabLabel}</h1>
+          </div>
+          <button
+            onClick={onBack}
+            className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+          >
+            <span className="material-icons text-sm">logout</span>
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 pb-20 md:pb-8">
         {/* DASHBOARD */}
         {activeTab === 'DASHBOARD' && (
           <div className="space-y-8 animate-fade-in">
@@ -154,21 +176,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-gray-400 text-xs font-bold uppercase">Total Revenue</span>
+                  <span className="text-gray-400 text-xs font-bold uppercase">Tổng doanh thu</span>
                   <span className="material-icons text-green-500 bg-green-50 p-1 rounded">attach_money</span>
                 </div>
-                <h3 className="text-3xl font-bold text-gray-800">${totalRevenue.toFixed(2)}</h3>
+                <h3 className="text-3xl font-bold text-gray-800">{formatMoney(totalRevenue)}</h3>
               </div>
               <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-gray-400 text-xs font-bold uppercase">Total Shifts</span>
+                  <span className="text-gray-400 text-xs font-bold uppercase">Tổng ca</span>
                   <span className="material-icons text-blue-500 bg-blue-50 p-1 rounded">schedule</span>
                 </div>
                 <h3 className="text-3xl font-bold text-gray-800">{shifts.length}</h3>
               </div>
               <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-gray-400 text-xs font-bold uppercase">Total Orders</span>
+                  <span className="text-gray-400 text-xs font-bold uppercase">Tổng Orders</span>
                   <span className="material-icons text-purple-500 bg-purple-50 p-1 rounded">receipt</span>
                 </div>
                 <h3 className="text-3xl font-bold text-gray-800">{orders.length}</h3>
@@ -176,7 +198,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </section>
             {chartData.length > 0 && (
               <section className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm h-80">
-                <h4 className="font-bold text-lg text-gray-800 mb-6">Revenue by Shift</h4>
+                <h4 className="font-bold text-lg text-gray-800 mb-6">Doanh thu theo ca</h4>
                 <ResponsiveContainer width="100%" height="80%">
                   <BarChart data={chartData}>
                     <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} />
@@ -253,7 +275,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <td className="px-6 py-4 text-sm text-gray-600">
                               {categories.find((c) => c.id === prod.category)?.name || prod.category}
                             </td>
-                            <td className="px-6 py-4 text-sm font-bold text-gray-800">${prod.price.toFixed(2)}</td>
+                            <td className="px-6 py-4 text-sm font-bold text-gray-800">{formatMoney(prod.price)}</td>
                             <td className="px-6 py-4 text-right">
                               <button onClick={() => openProdModal(prod)} className="text-blue-500 hover:bg-blue-50 p-2 rounded mr-1"><span className="material-icons text-sm">edit</span></button>
                               <button onClick={() => onDeleteProduct(prod.id)} className="text-red-500 hover:bg-red-50 p-2 rounded"><span className="material-icons text-sm">delete</span></button>
@@ -272,17 +294,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {/* TABLES MANAGEMENT */}
         {activeTab === 'TABLES' && (
           <div className="space-y-6">
-            <header><h2 className="text-2xl font-bold text-gray-800">Tables & Areas</h2></header>
+            <header><h2 className="text-2xl font-bold text-gray-800">Bàn & Khu vực</h2></header>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Areas */}
               <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm h-fit">
-                <h3 className="font-bold text-gray-700 mb-4">Areas</h3>
+                <h3 className="font-bold text-gray-700 mb-4">Khu vực</h3>
                 <div className="flex gap-2 mb-4">
                   <input
                     type="text"
                     value={newAreaName}
                     onChange={(e) => setNewAreaName(e.target.value)}
-                    placeholder="New Area Name"
+                    placeholder="Tên khu vực mới"
                     className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary"
                   />
                   <button
@@ -311,9 +333,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               {/* Tables */}
               <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden h-fit">
                 <div className="p-4 border-b border-gray-100 flex justify-between items-center">
-                  <h3 className="font-bold text-gray-700">Tables List</h3>
+                  <h3 className="font-bold text-gray-700">Danh sách bàn</h3>
                   <button onClick={() => openTableModal()} className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-opacity-90">
-                    <span className="material-icons text-sm">add</span> Add Table
+                    <span className="material-icons text-sm">add</span> Thêm bàn mới
                   </button>
                 </div>
                 <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
@@ -382,7 +404,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           </div>
         )}
+        </div>
       </main>
+
+      {/* Mobile Bottom Tab Bar */}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 z-40 flex items-center justify-around px-2 py-1 safe-area-pb">
+        {tabItems.map((item) => (
+          <button
+            key={item.key}
+            onClick={() => setActiveTab(item.key)}
+            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors min-w-0 ${
+              activeTab === item.key ? 'text-primary' : 'text-gray-400'
+            }`}
+          >
+            <span className="material-icons text-xl">{item.icon}</span>
+            <span className="text-[10px] font-bold">{item.label}</span>
+          </button>
+        ))}
+      </nav>
 
       {/* ─── MODALS ─── */}
       {/* Product Modal */}

@@ -43,6 +43,14 @@
       ::-webkit-scrollbar-thumb:hover {
         background: #94a3b8;
       }
+      /* Mobile drawer animation */
+      @keyframes slideUp {
+        from { transform: translateY(100%); }
+        to { transform: translateY(0); }
+      }
+      .animate-slide-up {
+        animation: slideUp 0.3s ease-out;
+      }
     </style>
   <script type="importmap">
 {
