@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Shift, Order, Category, Product, Table, User, Area, TableStatus } from '@/src/shared/types';
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { formatMoney } from '@/src/shared/utils/money';
+import { toDateKey } from '@/src/shared/utils/date';
 
 interface AdminDashboardProps {
   shifts: Shift[];
@@ -47,16 +48,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [newAreaName, setNewAreaName] = useState('');
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [filterDate, setFilterDate] = useState<string>(toDateKey());
+  const [filterMode, setFilterMode] = useState<'day' | 'all'>('day');
 
-  // Revenue data from actual orders
-  const closedOrders = orders.filter((o) => o.status === 'CLOSED');
+  // Filtered data based on selected date
+  const filteredOrders = filterMode === 'all'
+    ? orders
+    : orders.filter((o) => toDateKey(o.createdAt) === filterDate);
+  const filteredShifts = filterMode === 'all'
+    ? shifts
+    : shifts.filter((s) => s.date === filterDate);
+
+  // Revenue data from filtered orders
+  const closedOrders = filteredOrders.filter((o) => o.status === 'CLOSED');
   const totalRevenue = closedOrders.reduce((acc, curr) => acc + curr.totalAmount, 0);
 
-  // Build chart data from shifts
-  const chartData = shifts
+  // Build chart data from filtered shifts
+  const chartData = filteredShifts
     .slice(0, 10)
     .map((s) => ({
-      day: `${s.date} ${s.shiftName}`,
+      day: filterMode === 'day' ? s.shiftName : `${s.date} ${s.shiftName}`,
       revenue: s.totalRevenue,
     }));
 
@@ -116,7 +127,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <div className="p-2 bg-primary rounded text-white">
               <span className="material-icons">coffee</span>
             </div>
-            Bean & Leaf
+            Rin Coffee
           </div>
           <p className="text-xs text-gray-400 mt-1 pl-10">Admin Console</p>
         </div>
@@ -166,39 +177,101 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <div className="flex-1 overflow-y-auto p-4 md:p-8 pb-20 md:pb-8">
         {/* DASHBOARD */}
         {activeTab === 'DASHBOARD' && (
-          <div className="space-y-8 animate-fade-in">
-            <header className="flex justify-between items-center">
+          <div className="space-y-6 md:space-y-8 animate-fade-in">
+            <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-bold text-gray-800">Sales Overview</h2>
-                <p className="text-gray-500">Welcome back, Admin</p>
+                <h2 className="text-xl md:text-2xl font-bold text-gray-800">Báo cáo doanh thu</h2>
+                <p className="text-sm text-gray-500">Xem tổng quan hoạt động kinh doanh</p>
+              </div>
+              {/* Date Filter */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex bg-white rounded-lg border border-gray-200 p-0.5">
+                  <button
+                    onClick={() => setFilterMode('day')}
+                    className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${
+                      filterMode === 'day' ? 'bg-primary text-white' : 'text-gray-500 hover:bg-gray-50'
+                    }`}
+                  >
+                    Theo ngày
+                  </button>
+                  <button
+                    onClick={() => setFilterMode('all')}
+                    className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${
+                      filterMode === 'all' ? 'bg-primary text-white' : 'text-gray-500 hover:bg-gray-50'
+                    }`}
+                  >
+                    Tất cả
+                  </button>
+                </div>
+                {filterMode === 'day' && (
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => {
+                        const d = new Date(filterDate + 'T00:00:00');
+                        d.setDate(d.getDate() - 1);
+                        setFilterDate(toDateKey(d));
+                      }}
+                      className="p-1.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      <span className="material-icons text-sm text-gray-500">chevron_left</span>
+                    </button>
+                    <input
+                      type="date"
+                      value={filterDate}
+                      onChange={(e) => setFilterDate(e.target.value)}
+                      className="bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-medium text-gray-700 focus:ring-2 focus:ring-primary outline-none cursor-pointer"
+                    />
+                    <button
+                      onClick={() => {
+                        const d = new Date(filterDate + 'T00:00:00');
+                        d.setDate(d.getDate() + 1);
+                        setFilterDate(toDateKey(d));
+                      }}
+                      className="p-1.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      <span className="material-icons text-sm text-gray-500">chevron_right</span>
+                    </button>
+                    {filterDate !== toDateKey() && (
+                      <button
+                        onClick={() => setFilterDate(toDateKey())}
+                        className="px-2.5 py-1.5 bg-secondary text-white rounded-lg text-xs font-bold hover:bg-opacity-90 transition-colors"
+                      >
+                        Hôm nay
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </header>
-            <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+            <section className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+              <div className="bg-white p-4 md:p-6 rounded-xl border border-gray-200 shadow-sm">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-gray-400 text-xs font-bold uppercase">Tổng doanh thu</span>
                   <span className="material-icons text-green-500 bg-green-50 p-1 rounded">attach_money</span>
                 </div>
-                <h3 className="text-3xl font-bold text-gray-800">{formatMoney(totalRevenue)}</h3>
+                <h3 className="text-2xl md:text-3xl font-bold text-gray-800">{formatMoney(totalRevenue)}</h3>
               </div>
-              <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+              <div className="bg-white p-4 md:p-6 rounded-xl border border-gray-200 shadow-sm">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-gray-400 text-xs font-bold uppercase">Tổng ca</span>
                   <span className="material-icons text-blue-500 bg-blue-50 p-1 rounded">schedule</span>
                 </div>
-                <h3 className="text-3xl font-bold text-gray-800">{shifts.length}</h3>
+                <h3 className="text-2xl md:text-3xl font-bold text-gray-800">{filteredShifts.length}</h3>
               </div>
-              <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+              <div className="bg-white p-4 md:p-6 rounded-xl border border-gray-200 shadow-sm">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-gray-400 text-xs font-bold uppercase">Tổng Orders</span>
                   <span className="material-icons text-purple-500 bg-purple-50 p-1 rounded">receipt</span>
                 </div>
-                <h3 className="text-3xl font-bold text-gray-800">{orders.length}</h3>
+                <h3 className="text-2xl md:text-3xl font-bold text-gray-800">{filteredOrders.length}</h3>
               </div>
             </section>
             {chartData.length > 0 && (
-              <section className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm h-80">
-                <h4 className="font-bold text-lg text-gray-800 mb-6">Doanh thu theo ca</h4>
+              <section className="bg-white p-4 md:p-6 rounded-xl border border-gray-200 shadow-sm h-72 md:h-80">
+                <h4 className="font-bold text-base md:text-lg text-gray-800 mb-4 md:mb-6">
+                  Doanh thu theo ca
+                  {filterMode === 'day' && <span className="text-sm font-normal text-gray-400 ml-2">({filterDate})</span>}
+                </h4>
                 <ResponsiveContainer width="100%" height="80%">
                   <BarChart data={chartData}>
                     <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} />
@@ -249,7 +322,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <div className="p-4 border-b border-gray-100 flex justify-between items-center">
                     <h3 className="font-bold text-gray-700">Products</h3>
                     <button onClick={() => openProdModal()} className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-opacity-90">
-                      <span className="material-icons text-sm">add</span> Add Item
+                      <span className="material-icons text-sm">add</span> Thêm món mới
                     </button>
                   </div>
                   <div className="overflow-x-auto">
