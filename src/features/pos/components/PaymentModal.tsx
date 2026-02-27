@@ -277,7 +277,32 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         >
           {/* Header */}
           <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-            <div style={{ fontSize: '20px', fontWeight: 900, letterSpacing: '1px' }}>RIN COFFEE</div>
+            {/* <div style={{ fontSize: '20px', fontWeight: 900, letterSpacing: '1px' }}>RIN COFFEE</div> */}
+            {/* <div
+              style={{
+                fontSize: '26px',
+                fontWeight: 900,
+                letterSpacing: '2px',
+                textAlign: 'center',
+                textTransform: 'uppercase',
+              }}
+            >
+              RIN COFFEE
+            </div> */}
+            <div
+              style={{
+                fontSize: '28px',
+                fontWeight: 900,
+                letterSpacing: '3px',
+                textAlign: 'center',
+                padding: '6px 0',
+                borderTop: '2px solid #000',
+                borderBottom: '2px solid #000',
+                marginBottom: '6px',
+              }}
+            >
+              RIN COFFEE
+            </div>
             <div style={{ fontSize: '11px', marginTop: '4px', lineHeight: '1.5' }}>
               Thôn 1B, xã Krông Păk,
               <br />
