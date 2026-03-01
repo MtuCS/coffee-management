@@ -26,7 +26,7 @@ interface AdminDashboardProps {
   onDeleteUser: (id: string) => void;
 }
 
-type Tab = 'DASHBOARD' | 'MENU' | 'TABLES' | 'STAFF';
+type Tab = 'DASHBOARD' | 'MENU' | 'TABLES' | 'STAFF' | 'BILLS';
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   shifts, orders, onBack,
@@ -51,6 +51,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [filterDate, setFilterDate] = useState<string>(toDateKey());
   const [filterMode, setFilterMode] = useState<'day' | 'all'>('day');
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [billsFilterDate, setBillsFilterDate] = useState<string>(toDateKey());
+  const [billsFilterMode, setBillsFilterMode] = useState<'day' | 'all'>('day');
+  const [expandedBills, setExpandedBills] = useState<Set<string>>(new Set());
 
   // Sorted categories alphabetically
   const sortedCategories = [...categories].sort((a, b) => a.name.localeCompare(b.name, 'vi'));
@@ -141,11 +144,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setIsUserModalOpen(true);
   };
 
+  // Bills filtered data
+  const filteredBills = billsFilterMode === 'all'
+    ? orders.filter((o) => o.status === 'CLOSED')
+    : orders.filter((o) => o.status === 'CLOSED' && toDateKey(o.createdAt) === billsFilterDate);
+  
+  const billsTotalRevenue = filteredBills.reduce((acc, curr) => acc + curr.totalAmount, 0);
+
+  const toggleBillExpand = (billId: string) => {
+    setExpandedBills((prev) => {
+      const next = new Set(prev);
+      if (next.has(billId)) {
+        next.delete(billId);
+      } else {
+        next.add(billId);
+      }
+      return next;
+    });
+  };
+
   const tabItems = [
     { key: 'DASHBOARD' as Tab, icon: 'analytics', label: 'Dashboard' },
     { key: 'MENU' as Tab, icon: 'restaurant_menu', label: 'Menu' },
-    { key: 'TABLES' as Tab, icon: 'table_restaurant', label: 'Tables' },
-    { key: 'STAFF' as Tab, icon: 'people', label: 'Staff' },
+    { key: 'TABLES' as Tab, icon: 'table_restaurant', label: 'Bàn-Khu vực' },
+    { key: 'STAFF' as Tab, icon: 'people', label: 'Nhân sự' },
+    { key: 'BILLS' as Tab, icon: 'receipt_long', label: 'Hóa đơn' },
   ];
 
   const activeTabLabel = tabItems.find((t) => t.key === activeTab)?.label || '';
@@ -554,6 +577,196 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* BILLS / ORDER HISTORY */}
+        {activeTab === 'BILLS' && (
+          <div className="space-y-6 animate-fade-in">
+            <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h2 className="text-xl md:text-2xl font-bold text-gray-800">Lịch sử hóa đơn</h2>
+                <p className="text-sm text-gray-500">Theo dõi tất cả các hóa đơn đã thanh toán</p>
+              </div>
+              {/* Date Filter */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex bg-white rounded-lg border border-gray-200 p-0.5">
+                  <button
+                    onClick={() => setBillsFilterMode('day')}
+                    className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${
+                      billsFilterMode === 'day' ? 'bg-primary text-white' : 'text-gray-500 hover:bg-gray-50'
+                    }`}
+                  >
+                    Theo ngày
+                  </button>
+                  <button
+                    onClick={() => setBillsFilterMode('all')}
+                    className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${
+                      billsFilterMode === 'all' ? 'bg-primary text-white' : 'text-gray-500 hover:bg-gray-50'
+                    }`}
+                  >
+                    Tất cả
+                  </button>
+                </div>
+                {billsFilterMode === 'day' && (
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => {
+                        const d = new Date(billsFilterDate + 'T00:00:00');
+                        d.setDate(d.getDate() - 1);
+                        setBillsFilterDate(toDateKey(d));
+                      }}
+                      className="p-1.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      <span className="material-icons text-sm text-gray-500">chevron_left</span>
+                    </button>
+                    <input
+                      type="date"
+                      value={billsFilterDate}
+                      onChange={(e) => setBillsFilterDate(e.target.value)}
+                      className="bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-medium text-gray-700 focus:ring-2 focus:ring-primary outline-none cursor-pointer"
+                    />
+                    <button
+                      onClick={() => {
+                        const d = new Date(billsFilterDate + 'T00:00:00');
+                        d.setDate(d.getDate() + 1);
+                        setBillsFilterDate(toDateKey(d));
+                      }}
+                      className="p-1.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      <span className="material-icons text-sm text-gray-500">chevron_right</span>
+                    </button>
+                    {billsFilterDate !== toDateKey() && (
+                      <button
+                        onClick={() => setBillsFilterDate(toDateKey())}
+                        className="px-2.5 py-1.5 bg-secondary text-white rounded-lg text-xs font-bold hover:bg-opacity-90 transition-colors"
+                      >
+                        Hôm nay
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </header>
+
+            {/* Summary Cards */}
+            <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-white p-4 md:p-6 rounded-xl border border-gray-200 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-gray-400 text-xs font-bold uppercase">Tổng hóa đơn</span>
+                  <span className="material-icons text-blue-500 bg-blue-50 p-1 rounded">receipt</span>
+                </div>
+                <h3 className="text-2xl md:text-3xl font-bold text-gray-800">{filteredBills.length}</h3>
+              </div>
+              <div className="bg-white p-4 md:p-6 rounded-xl border border-gray-200 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-gray-400 text-xs font-bold uppercase">Tổng doanh thu</span>
+                  <span className="material-icons text-green-500 bg-green-50 p-1 rounded">attach_money</span>
+                </div>
+                <h3 className="text-2xl md:text-3xl font-bold text-gray-800">{formatMoney(billsTotalRevenue)}</h3>
+              </div>
+              <div className="bg-white p-4 md:p-6 rounded-xl border border-gray-200 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-gray-400 text-xs font-bold uppercase">TB / Hóa đơn</span>
+                  <span className="material-icons text-purple-500 bg-purple-50 p-1 rounded">trending_up</span>
+                </div>
+                <h3 className="text-2xl md:text-3xl font-bold text-gray-800">
+                  {filteredBills.length > 0 ? formatMoney(Math.round(billsTotalRevenue / filteredBills.length)) : '0đ'}
+                </h3>
+              </div>
+            </section>
+
+            {/* Bills List */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="p-4 border-b border-gray-100 flex justify-between items-center">
+                <h3 className="font-bold text-gray-700">Danh sách hóa đơn</h3>
+                <span className="text-sm text-gray-400">
+                  {filteredBills.length} hóa đơn
+                  {billsFilterMode === 'day' && ` ngày ${billsFilterDate}`}
+                </span>
+              </div>
+              
+              {filteredBills.length === 0 ? (
+                <div className="p-12 text-center text-gray-400">
+                  <span className="material-icons text-4xl mb-2">receipt_long</span>
+                  <p>Không có hóa đơn nào trong khoảng thời gian này</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
+                  {filteredBills
+                    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                    .map((bill) => {
+                      const tableName = bill.tableId
+                        ? tables.find((t) => t.id === bill.tableId)?.name || 'Bàn không xác định'
+                        : 'Mang đi';
+                      const billDate = new Date(bill.createdAt);
+                      const isExpanded = expandedBills.has(bill.id);
+
+                      return (
+                        <div key={bill.id} className="hover:bg-gray-50 transition-colors">
+                          {/* Bill Header */}
+                          <button
+                            onClick={() => toggleBillExpand(bill.id)}
+                            className="w-full p-4 flex items-center justify-between text-left"
+                          >
+                            <div className="flex items-center gap-4">
+                              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                                bill.type === 'TAKEAWAY' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'
+                              }`}>
+                                <span className="material-icons text-sm">
+                                  {bill.type === 'TAKEAWAY' ? 'takeout_dining' : 'table_restaurant'}
+                                </span>
+                              </div>
+                              <div>
+                                <div className="font-bold text-gray-800">
+                                  {tableName}
+                                  <span className="ml-2 text-xs font-normal text-gray-400">#{bill.id.slice(-6).toUpperCase()}</span>
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  {billDate.toLocaleDateString('vi-VN')} • {billDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <div className="text-right">
+                                <div className="font-bold text-gray-800">{formatMoney(bill.totalAmount)}</div>
+                                <div className="text-xs text-gray-400">{bill.items.length} món</div>
+                              </div>
+                              <span className={`material-icons text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
+                                expand_more
+                              </span>
+                            </div>
+                          </button>
+
+                          {/* Bill Details */}
+                          {isExpanded && (
+                            <div className="px-4 pb-4 bg-gray-50 border-t border-gray-100">
+                              <div className="pt-3 space-y-2">
+                                {bill.items.map((item) => (
+                                  <div key={item.id} className="flex justify-between items-center text-sm">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-gray-600">{item.name}</span>
+                                      <span className="text-gray-400">x{item.quantity}</span>
+                                      {item.note && (
+                                        <span className="text-xs text-orange-500 italic">({item.note})</span>
+                                      )}
+                                    </div>
+                                    <span className="font-medium text-gray-700">{formatMoney(item.price * item.quantity)}</span>
+                                  </div>
+                                ))}
+                                <div className="pt-2 mt-2 border-t border-gray-200 flex justify-between font-bold">
+                                  <span>Tổng cộng</span>
+                                  <span className="text-primary">{formatMoney(bill.totalAmount)}</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
             </div>
           </div>
         )}
