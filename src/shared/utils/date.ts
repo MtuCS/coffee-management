@@ -72,3 +72,19 @@ export const buildShiftTimes = (dateKey: string, def: ShiftDefinition): { start:
     end:   new Date(y, m - 1, d, def.endHour, 0, 0),
   };
 };
+
+/**
+ * Lấy dateKey của ngày hôm qua
+ */
+export const getYesterdayDateKey = (): string => {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  return toDateKey(yesterday);
+};
+
+/**
+ * Lấy định nghĩa ca tối (EVENING)
+ */
+export const getEveningShiftDef = (): ShiftDefinition => {
+  return SHIFT_DEFINITIONS.find((s) => s.type === 'EVENING')!;
+};

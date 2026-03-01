@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ViewState, User, Order, OrderItem, Category, Product, Table, Area, Shift, TableStatus } from '@/src/shared/types';
 import { CATEGORIES, PRODUCTS, INITIAL_TABLES, USERS } from '@/src/shared/constants';
+import { getYesterdayDateKey } from '@/src/shared/utils/date';
 
 // Features
 import { TableMap } from '@/src/features/pos/components/TableMap';
@@ -71,6 +72,46 @@ const App: React.FC = () => {
     ];
 
     return () => unsubscribers.forEach((unsub) => unsub());
+  }, [currentUser]);
+
+  // ─── Auto-close Evening Shift at Midnight ───
+  // Kiểm tra mỗi phút, khi đúng 0h thì tự động đóng các order chưa thanh toán của ca tối ngày hôm trước
+  const hasClosedTonightRef = useRef<string | null>(null);
+  
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const checkMidnight = async () => {
+      const now = new Date();
+      const hour = now.getHours();
+      const minute = now.getMinutes();
+      const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+      // Chỉ chạy khi đúng 0h (00:00 - 00:00:59)
+      // Và chưa chạy cho ngày hôm nay
+      if (hour === 0 && minute === 0 && hasClosedTonightRef.current !== todayKey) {
+        console.log('[đóng ca tối] Bắt đầu tự động đóng ca tối...');
+        hasClosedTonightRef.current = todayKey;
+        
+        try {
+          const yesterdayKey = getYesterdayDateKey();
+          const closedCount = await ordersRepo.closeEveningShiftOpenOrders(yesterdayKey);
+          if (closedCount > 0) {
+            console.log(`[đóng ca tối] Đã tự động đóng ${closedCount} orders chưa thanh toán`);
+          }
+        } catch (error) {
+          console.error('[đóng ca tối] Lỗi:', error);
+        }
+      }
+    };
+
+    // Kiểm tra ngay khi mount
+    checkMidnight();
+
+    // Kiểm tra mỗi phút
+    const intervalId = setInterval(checkMidnight, 60_000);
+
+    return () => clearInterval(intervalId);
   }, [currentUser]);
 
   // ─── Derived ───

@@ -9,12 +9,15 @@ import {
   where,
   orderBy,
   runTransaction,
+  getDocs,
+  writeBatch,
   Timestamp,
   Unsubscribe,
   FirestoreError,
 } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Order, OrderItem } from '@/src/shared/types';
+import { Order, OrderItem, TableStatus } from '@/src/shared/types';
+import { getOrCreateEveningShift } from './shifts.repo';
 
 // ─── Collection ───
 const ordersRef = collection(db, 'orders');
@@ -146,4 +149,86 @@ export const processPayment = async (
 
 export const closeOrder = async (orderId: string): Promise<void> => {
   await updateDoc(doc(db, 'orders', orderId), { status: 'CLOSED' });
+};
+
+/**
+ * Đóng ca tối: Tự động thanh toán tất cả các order còn mở (chưa thanh toán)
+ * - Đánh dấu tất cả items là isPaid: true
+ * - Cập nhật paidAmount = totalAmount
+ * - Đổi status thành CLOSED
+ * - Ghi nhận doanh thu vào ca tối của ngày đó
+ * - Reset bàn về AVAILABLE
+ */
+export const closeEveningShiftOpenOrders = async (dateKey: string): Promise<number> => {
+  // Lấy tất cả orders đang mở
+  const q = query(ordersRef, where('status', '==', 'OPEN'));
+  const snapshot = await getDocs(q);
+
+  if (snapshot.empty) {
+    console.log('[closeEveningShiftOpenOrders] Không có order nào cần đóng');
+    return 0;
+  }
+
+  // Lấy hoặc tạo shift ca tối cho ngày đó
+  const eveningShift = await getOrCreateEveningShift(dateKey);
+  const shiftRef = doc(db, 'shifts', eveningShift.id);
+
+  // Tính tổng số tiền cần ghi nhận (chỉ tính phần chưa thanh toán)
+  let totalUnpaidAmount = 0;
+  const ordersToClose: { orderId: string; tableId: string | null; unpaidAmount: number; items: OrderItem[] }[] = [];
+
+  snapshot.docs.forEach((docSnap) => {
+    const order = fromFirestoreOrder(docSnap.id, docSnap.data());
+    const unpaidAmount = order.totalAmount - order.paidAmount;
+    if (unpaidAmount > 0) {
+      totalUnpaidAmount += unpaidAmount;
+    }
+    ordersToClose.push({
+      orderId: order.id,
+      tableId: order.tableId,
+      unpaidAmount,
+      items: order.items,
+    });
+  });
+
+  // Sử dụng batch để cập nhật atomic
+  const batch = writeBatch(db);
+
+  // Cập nhật từng order
+  ordersToClose.forEach(({ orderId, items, unpaidAmount }) => {
+    const orderRef = doc(db, 'orders', orderId);
+    // Đánh dấu tất cả items là đã thanh toán
+    const updatedItems = items.map((item) => ({ ...item, isPaid: true }));
+    const orderData = snapshot.docs.find((d) => d.id === orderId)?.data();
+    batch.update(orderRef, {
+      items: updatedItems,
+      paidAmount: (orderData?.totalAmount as number) || 0,
+      status: 'CLOSED',
+    });
+  });
+
+  // Cập nhật dữ liệu shift - cộng thêm doanh thu
+  batch.update(shiftRef, {
+    totalRevenue: eveningShift.totalRevenue + totalUnpaidAmount,
+  });
+
+  // Reset các bàn về trạng thái trống
+  const tableIds = ordersToClose
+    .map((o) => o.tableId)
+    .filter((id): id is string => id !== null);
+  
+  const uniqueTableIds = [...new Set(tableIds)];
+  uniqueTableIds.forEach((tableId) => {
+    const tableRef = doc(db, 'tables', tableId);
+    batch.update(tableRef, {
+      status: TableStatus.AVAILABLE,
+      currentOrderId: null,
+    });
+  });
+
+  // Commit batch
+  await batch.commit();
+
+  console.log(`[đóng ca tối] Đã đóng ${ordersToClose.length} orders, ghi nhận ${totalUnpaidAmount}đ vào ca tối ngày ${dateKey}`);
+  return ordersToClose.length;
 };

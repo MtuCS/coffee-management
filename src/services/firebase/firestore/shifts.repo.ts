@@ -18,6 +18,7 @@ import {
   toDateKey,
   buildShiftTimes,
   SHIFT_DEFINITIONS,
+  getEveningShiftDef,
   type ShiftDefinition,
 } from '@/src/shared/utils/date';
 
@@ -134,4 +135,46 @@ export const subscribeShifts = (
   }, (error: FirestoreError) => {
     console.error('[subscribeShifts] Error:', error.message);
   });
+};
+
+/**
+ * Lấy hoặc tạo shift ca tối (EVENING) cho một ngày cụ thể.
+ * Dùng khi đóng ca tối để ghi nhận doanh thu các order chưa thanh toán.
+ */
+export const getOrCreateEveningShift = async (dateKey: string): Promise<Shift> => {
+  const def = getEveningShiftDef();
+
+  // Tìm shift đã tồn tại cho ngày + ca tối
+  const q = query(
+    shiftsRef,
+    where('date', '==', dateKey),
+    where('shiftType', '==', 'EVENING')
+  );
+  const snapshot = await getDocs(q);
+
+  if (!snapshot.empty) {
+    const docSnap = snapshot.docs[0];
+    return fromFirestoreShift(docSnap.id, docSnap.data());
+  }
+
+  // Chưa có → tạo mới
+  const times = buildShiftTimes(dateKey, def);
+  const newShift = {
+    shiftType: def.type,
+    shiftName: def.name,
+    date: dateKey,
+    startTime: Timestamp.fromDate(times.start),
+    endTime: Timestamp.fromDate(times.end),
+    totalRevenue: 0,
+  };
+  const docRef = await addDoc(shiftsRef, newShift);
+  return {
+    id: docRef.id,
+    shiftType: def.type,
+    shiftName: def.name,
+    date: dateKey,
+    startTime: times.start,
+    endTime: times.end,
+    totalRevenue: 0,
+  };
 };
