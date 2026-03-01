@@ -50,6 +50,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [filterDate, setFilterDate] = useState<string>(toDateKey());
   const [filterMode, setFilterMode] = useState<'day' | 'all'>('day');
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+
+  // Sorted categories alphabetically
+  const sortedCategories = [...categories].sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+
+  // Group products by category
+  const productsByCategory = sortedCategories.map((cat) => ({
+    category: cat,
+    products: products
+      .filter((p) => p.category === cat.id)
+      .sort((a, b) => a.name.localeCompare(b.name, 'vi')),
+  }));
+
+  const toggleCategory = (catId: string) => {
+    setExpandedCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(catId)) {
+        next.delete(catId);
+      } else {
+        next.add(catId);
+      }
+      return next;
+    });
+  };
+
+  const expandAllCategories = () => {
+    setExpandedCategories(new Set(categories.map((c) => c.id)));
+  };
+
+  const collapseAllCategories = () => {
+    setExpandedCategories(new Set());
+  };
 
   // Filtered data based on selected date
   const filteredOrders = filterMode === 'all'
@@ -291,7 +323,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {/* MENU MANAGEMENT */}
         {activeTab === 'MENU' && (
           <div className="space-y-6">
-            <header><h2 className="text-2xl font-bold text-gray-800">Menu Management</h2></header>
+            <header><h2 className="text-2xl font-bold text-gray-800">Quản lý Menu</h2></header>
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
               {/* Categories */}
               <div className="lg:col-span-1 bg-white p-6 rounded-xl border border-gray-200 shadow-sm h-fit">
@@ -302,63 +334,109 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </button>
                 </div>
                 <ul className="space-y-2">
-                  {categories.map((cat) => (
-                    <li key={cat.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg group">
-                      <div className="flex items-center gap-3">
-                        <span className="material-icons text-gray-400 text-lg">{cat.icon}</span>
-                        <span className="text-sm font-medium text-gray-700">{cat.name}</span>
-                      </div>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => openCatModal(cat)} className="text-blue-500 hover:bg-blue-50 p-1 rounded"><span className="material-icons text-xs">edit</span></button>
-                        <button onClick={() => onDeleteCategory(cat.id)} className="text-red-500 hover:bg-red-50 p-1 rounded"><span className="material-icons text-xs">delete</span></button>
-                      </div>
-                    </li>
-                  ))}
+                  {sortedCategories.map((cat) => {
+                    const productCount = products.filter((p) => p.category === cat.id).length;
+                    return (
+                      <li key={cat.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg group">
+                        <div className="flex items-center gap-3">
+                          <span className="material-icons text-gray-400 text-lg">{cat.icon}</span>
+                          <div>
+                            <span className="text-sm font-medium text-gray-700">{cat.name}</span>
+                            <span className="ml-2 text-xs text-gray-400">({productCount})</span>
+                          </div>
+                        </div>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => openCatModal(cat)} className="text-blue-500 hover:bg-blue-50 p-1 rounded"><span className="material-icons text-xs">edit</span></button>
+                          <button onClick={() => onDeleteCategory(cat.id)} className="text-red-500 hover:bg-red-50 p-1 rounded"><span className="material-icons text-xs">delete</span></button>
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
-              {/* Products */}
-              <div className="lg:col-span-3">
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                  <div className="p-4 border-b border-gray-100 flex justify-between items-center">
+              {/* Products - Grouped View */}
+              <div className="lg:col-span-3 space-y-4">
+                {/* Header */}
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex justify-between items-center">
+                  <div className="flex items-center gap-4">
                     <h3 className="font-bold text-gray-700">Products</h3>
-                    <button onClick={() => openProdModal()} className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-opacity-90">
-                      <span className="material-icons text-sm">add</span> Thêm món mới
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={expandAllCategories}
+                        className="text-xs text-gray-500 hover:text-primary px-2 py-1 rounded hover:bg-gray-50 transition-colors"
+                      >
+                        Mở tất cả
+                      </button>
+                      <button
+                        onClick={collapseAllCategories}
+                        className="text-xs text-gray-500 hover:text-primary px-2 py-1 rounded hover:bg-gray-50 transition-colors"
+                      >
+                        Thu gọn
+                      </button>
+                    </div>
                   </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                      <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-bold">
-                        <tr>
-                          <th className="px-6 py-3">Product</th>
-                          <th className="px-6 py-3">Category</th>
-                          <th className="px-6 py-3">Price</th>
-                          <th className="px-6 py-3 text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {products.map((prod) => (
-                          <tr key={prod.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 flex items-center gap-3">
-                              <img src={prod.image} alt="" className="w-10 h-10 rounded-lg object-cover bg-gray-100" />
-                              <div>
-                                <div className="text-sm font-bold text-gray-800">{prod.name}</div>
-                                <div className="text-xs text-gray-500 truncate w-32">{prod.description}</div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 text-sm text-gray-600">
-                              {categories.find((c) => c.id === prod.category)?.name || prod.category}
-                            </td>
-                            <td className="px-6 py-4 text-sm font-bold text-gray-800">{formatMoney(prod.price)}</td>
-                            <td className="px-6 py-4 text-right">
-                              <button onClick={() => openProdModal(prod)} className="text-blue-500 hover:bg-blue-50 p-2 rounded mr-1"><span className="material-icons text-sm">edit</span></button>
-                              <button onClick={() => onDeleteProduct(prod.id)} className="text-red-500 hover:bg-red-50 p-2 rounded"><span className="material-icons text-sm">delete</span></button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <button onClick={() => openProdModal()} className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-opacity-90">
+                    <span className="material-icons text-sm">add</span> Thêm món mới
+                  </button>
                 </div>
+
+                {/* Grouped Categories */}
+                {productsByCategory.map(({ category, products: catProducts }) => (
+                  <div key={category.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                    {/* Category Header - Collapsible */}
+                    <button
+                      onClick={() => toggleCategory(category.id)}
+                      className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="material-icons text-gray-400">{category.icon}</span>
+                        <span className="font-bold text-gray-800">{category.name}</span>
+                        <span className="bg-gray-100 text-gray-500 text-xs font-bold px-2 py-0.5 rounded-full">
+                          {catProducts.length} món
+                        </span>
+                      </div>
+                      <span className={`material-icons text-gray-400 transition-transform ${expandedCategories.has(category.id) ? 'rotate-180' : ''}`}>
+                        expand_more
+                      </span>
+                    </button>
+
+                    {/* Products List */}
+                    {expandedCategories.has(category.id) && (
+                      <div className="border-t border-gray-100">
+                        {catProducts.length === 0 ? (
+                          <div className="p-6 text-center text-gray-400 text-sm">
+                            Chưa có sản phẩm trong danh mục này
+                          </div>
+                        ) : (
+                          <table className="w-full text-left">
+                            <tbody className="divide-y divide-gray-100">
+                              {catProducts.map((prod) => (
+                                <tr key={prod.id} className="hover:bg-gray-50">
+                                  <td className="px-6 py-3 flex items-center gap-3">
+                                    <img src={prod.image} alt="" className="w-10 h-10 rounded-lg object-cover bg-gray-100" />
+                                    <div>
+                                      <div className="text-sm font-bold text-gray-800">{prod.name}</div>
+                                      <div className="text-xs text-gray-500 truncate max-w-xs">{prod.description}</div>
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-3 text-sm font-bold text-gray-800">{formatMoney(prod.price)}</td>
+                                  <td className="px-6 py-3 text-right">
+                                    <button onClick={() => openProdModal(prod)} className="text-blue-500 hover:bg-blue-50 p-2 rounded mr-1">
+                                      <span className="material-icons text-sm">edit</span>
+                                    </button>
+                                    <button onClick={() => onDeleteProduct(prod.id)} className="text-red-500 hover:bg-red-50 p-2 rounded">
+                                      <span className="material-icons text-sm">delete</span>
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -448,6 +526,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           </div>
         )}
+
+        
 
         {/* STAFF MANAGEMENT */}
         {activeTab === 'STAFF' && (

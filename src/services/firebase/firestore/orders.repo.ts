@@ -1,7 +1,7 @@
 import {
   collection,
   doc,
-  addDoc,
+  setDoc,
   updateDoc,
   deleteDoc,
   onSnapshot,
@@ -73,8 +73,12 @@ export const subscribeAllOrders = (
 // ─── CRUD ───
 
 export const createOrder = async (data: Omit<Order, 'id'>): Promise<string> => {
-  const docRef = await addDoc(ordersRef, toFirestoreOrder(data));
-  return docRef.id;
+  const datePrefix = new Date().toISOString().slice(0, 10); // e.g. "2026-02-27"
+  const randomSuffix = Math.random().toString(36).substring(2, 9); // 7 random chars
+  const customId = `${datePrefix}_${randomSuffix}`;
+  const docRef = doc(ordersRef, customId);
+  await setDoc(docRef, toFirestoreOrder(data));
+  return customId;
 };
 
 export const deleteOrder = async (orderId: string): Promise<void> => {

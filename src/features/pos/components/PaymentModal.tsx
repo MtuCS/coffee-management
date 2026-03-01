@@ -277,18 +277,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         >
           {/* Header */}
           <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-            {/* <div style={{ fontSize: '20px', fontWeight: 900, letterSpacing: '1px' }}>RIN COFFEE</div> */}
-            {/* <div
-              style={{
-                fontSize: '26px',
-                fontWeight: 900,
-                letterSpacing: '2px',
-                textAlign: 'center',
-                textTransform: 'uppercase',
-              }}
-            >
-              RIN COFFEE
-            </div> */}
             <div
               style={{
                 fontSize: '28px',
@@ -334,7 +322,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
           <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }} />
 
-          {/* Items */}
+          {/* Items
           <div style={{ marginBottom: '6px' }}>
             {rightItems.map((item, idx) => (
               <div key={idx} style={{ marginBottom: '4px' }}>
@@ -350,6 +338,43 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 )}
               </div>
             ))}
+          </div> */}
+
+          {/* Items */}
+          <div style={{ marginBottom: '6px' }}>
+            {rightItems.map((item, idx) => {
+              const lineTotal = item.price * item.quantity;
+
+              return (
+                <div key={idx} style={{ marginBottom: '6px' }}>
+                  {/* Tên món */}
+                  <div style={{ fontWeight: 700 }}>{item.name}</div>
+
+                  {/* SL x Đơn giá  |  Thành tiền */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      paddingLeft: '8px',
+                      fontSize: '12px',
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    <span>
+                      x{item.quantity} × {formatMoney(item.price)}
+                    </span>
+                    <span style={{ fontWeight: 700 }}>{formatMoney(lineTotal)}</span>
+                  </div>
+
+                  {/* Ghi chú */}
+                  {item.note && (
+                    <div style={{ paddingLeft: '8px', fontSize: '11px', fontStyle: 'italic', color: '#555' }}>
+                      ({item.note})
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           <div style={{ borderTop: '1px solid #000', margin: '8px 0' }} />
